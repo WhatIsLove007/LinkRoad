@@ -1,9 +1,7 @@
-import { gql, UserInputError } from 'apollo-server-express';
+import { gql, UserInputError, AuthenticationError } from 'apollo-server-express';
 
 import models from '../../models';
-import { CREDIT_CARDS, GRAPHQL_ERROR_MESSAGES } from '../../config/const';
-import * as inputDataValidation from '../../utils/inputDataValidation.js';
-import * as secretDataConversion from '../../utils/secretDataConversion.js';
+import { CREDIT_CARDS, ERROR_MESSAGES, USER_ROLES } from '../../config/const';
 
 
 export default class Order {
@@ -12,35 +10,23 @@ export default class Order {
       return {
          
          Query: {
-            
-            getUser: async (parent, {}, context) => {
-               
-            },
+            getUser: async (parent, { id }) => models.User.findByPk(id),
 
             signin: async (parent, { email, password }) => {
             
-               if (!inputDataValidation.validateEmail(email)) {
-                  throw new UserInputError(GRAPHQL_ERROR_MESSAGES.INCORRECT_EMAIL);
-               }
-               if (!inputDataValidation.validatePassword(password)) {
-                  throw new UserInputError(GRAPHQL_ERROR_MESSAGES.INCORRECT_PASSWORD);
-               }
-            
-               const user = await models.User.findOne({where: email});
-               if (!user) throw new Error(GRAPHQL_ERROR_MESSAGES.EMAIL_DOES_NOT_EXIST);
-            
-               if ( !(await secretDataConversion.compare(password, user.hashedPassword)) ) {
-                  throw new UserInputError(GRAPHQL_ERROR_MESSAGES.WRONG_PASSWORD);
-               }
+               models.User.validateEmail(email);
+               models.User.validatePassword(password);
 
-               return {Authorization};
-               
-            }
+               const user = await models.User.findOne({where: {email}});
+               if (!user) throw new AuthenticationError(ERROR_MESSAGES.EMAIL_DOES_NOT_EXIST);
             
+               await user.comparePasswords(password);
+
+               return {Authorization: user.generateAccessToken()};
+            }
          },
          
          Mutation: {
-            
             signup: async (parent, { input }) => {
                
                const {
@@ -48,51 +34,46 @@ export default class Order {
                   userCardInformation, userAddressInformation
                } = input;
 
+               models.User.validateEmail(email);
+               models.User.validatePassword(password);
 
-               if (!inputDataValidation.validateEmail(email)) {
-                  throw new UserInputError(GRAPHQL_ERROR_MESSAGES.INCORRECT_EMAIL);
-               }
-               if (!inputDataValidation.validatePassword(password)) {
-                  throw new UserInputError(GRAPHQL_ERROR_MESSAGES.INCORRECT_PASSWORD);
-               }
-               if (password !== confirmPassword) {
-                  throw new UserInputError(GRAPHQL_ERROR_MESSAGES.PASSWORDS_DO_NOT_MATCH);
-               }
+               if (password !== confirmPassword) throw new UserInputError(ERROR_MESSAGES.PASSWORDS_DO_NOT_MATCH);
 
                const existingEmail = await models.User.findOne({where: {email}});
-               if (existingEmail) throw new Error(GRAPHQL_ERROR_MESSAGES.EMAIL_ALREADY_EXISTS);
+               if (existingEmail) throw new Error(ERROR_MESSAGES.EMAIL_ALREADY_EXISTS);
 
                const existingPhone = await models.User.findOne({where: {mobile}});
-               if (existingPhone) throw new Error(GRAPHQL_ERROR_MESSAGES.MOBILE_ALREADY_EXISTS);
+               if (existingPhone) throw new Error(ERROR_MESSAGES.MOBILE_ALREADY_EXISTS);
 
                const existingSid = await models.User.findOne({where: {sid}});
-               if (existingSid) throw new Error(GRAPHQL_ERROR_MESSAGES.SID_ALREADY_EXISTS);
+               if (existingSid) throw new Error(ERROR_MESSAGES.SID_ALREADY_EXISTS);
 
-
-               return models.User.create({
+               const user = await models.User.create({
                   email,
                   mobile,
-                  hashedPassword: await secretDataConversion.hash(password),
+                  hashedPassword: await models.User.hashPassword(password),
                   ...(sid? {sid} : {}),
                   ...(userCardInformation? {
                      firstNameOnCard: userCardInformation.firstNameOnCard,
                      lastNameOnCard: userCardInformation.lastNameOnCard,
                      creditCard: userCardInformation.creditCard,
-                     cardNumber: userCardInformation.cardNumber,
+                     cardNumber: userCardInformation.cardNumber
                   } : {}),
                   ...(userAddressInformation? {
                      city: userAddressInformation.city,
                      zipCode: userAddressInformation.zipCode,
                      address1: userAddressInformation.address1,
-                     ...(userAddressInformation.address2? {address2: userAddressInformation.address2} : {}),
-                  } : {}),
+                     ...(userAddressInformation.address2? {address2: userAddressInformation.address2} : {})
+                  } : {})
                });
 
-            },
+               return {Authorization: user.generateAccessToken()};
+
+            }
             
 
-         },
-      }
+         }
+      };
    }
    
    
@@ -113,6 +94,7 @@ export default class Order {
             address1: String
             address2: String
             createdAt: String
+            role: UserRoles
          }
          
          enum CreditCard {
@@ -121,6 +103,11 @@ export default class Order {
             ${CREDIT_CARDS.JCB}
             ${CREDIT_CARDS.MASTERCARD}
             ${CREDIT_CARDS.VISA}
+         }
+
+         enum UserRoles {
+            ${USER_ROLES.USER}
+            ${USER_ROLES.ADMIN}
          }
 
          input UserSignupInput {
@@ -147,7 +134,7 @@ export default class Order {
             address2: String
          }
 
-      `
+      `;
    }
 
 }
