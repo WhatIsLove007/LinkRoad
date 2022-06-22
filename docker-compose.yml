@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:5.7
+    restart: always
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: $DATABASE_PASSWORD
+      MYSQL_DATABASE: $DATABASE_NAME
+    expose:
+      - "3306"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql:/var/lib/mysql
+      - mysql_config:/etc/mysql
+  api:
+    depends_on:
+      - db
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_HOST: db
+    stdin_open: true
+    tty: true
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - 8080:80
+    links:
+      - db:db
+    depends_on:
+      - db
+volumes: 
+  mysql:
+  mysql_config:

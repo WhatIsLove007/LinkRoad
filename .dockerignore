@@ -1,0 +1,10 @@
+# folders
+.git
+node_modules
+src
+
+#files
+Dockerfile
+package-lock.json
+.eslintrc.json
+.gitignore

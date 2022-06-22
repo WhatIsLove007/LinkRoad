@@ -4,12 +4,14 @@
   "description": "Project for self-education",
   "main": "app.js",
   "engines": {
-    "npm": ">=8.5.5",
-    "node": ">=17.4.1"
+    "npm": "8.11.0",
+    "node": "v16.15.1"
   },
   "scripts": {
     "dev": "nodemon --exec npx babel-node src/app.js",
     "build": "babel src --out-dir dist --copy-files",
+    "serve": "node dist/app.js",
+    "start": "npm run build && npm run serve",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:seed:all": "npx sequelize-cli db:seed:all",
     "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
@@ -26,13 +28,13 @@
   "devDependencies": {
     "@babel/core": "^7.18.2",
     "@babel/node": "^7.17.10",
-    "@babel/preset-env": "^7.18.2",
     "@babel/register": "^7.17.7",
     "eslint": "^8.17.0",
     "nodemon": "^2.0.16"
   },
   "dependencies": {
     "@babel/cli": "^7.17.10",
+    "@babel/preset-env": "^7.18.2",
     "@graphql-tools/schema": "^8.3.14",
     "apollo-server-express": "^3.8.1",
     "bcrypt": "^5.0.1",

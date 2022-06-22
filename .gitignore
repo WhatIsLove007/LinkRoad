@@ -1,2 +1,11 @@
+# Node.js
 node_modules
+package-lock.json
+
+# Enviroment files
 .env
+
+# Build
+dist
+
+# Dockerfile; .dockerignore; docker-compose.yml must be ignored, but for clarity it's shown

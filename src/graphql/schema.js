@@ -56,8 +56,7 @@ export const context = async context => {
       return context;
    }
  
-   const user = await models.User.authenticateUser(token);
-
-   context.user = user;
+   context.user = await models.User.authenticateUser(token);
+   
    return context;
 };

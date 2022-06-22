@@ -2,10 +2,11 @@ require('dotenv').config();
 require("@babel/register");
 
 const path = require('path');
+const dir = process.env.NODE_ENV === 'production' ? 'dist' : 'src'
 
 module.exports = {
-  'config': path.resolve('src/config', 'config.js'),
-  'models-path': path.resolve('src/models'),
-  'seeders-path': path.resolve('src/seeders'),
-  'migrations-path': path.resolve('src/migrations')
-}
+  'config': path.resolve(dir, 'config', 'config.js'),
+  'models-path': path.resolve(dir, 'models'),
+  'seeders-path': path.resolve(dir, 'seeders'),
+  'migrations-path': path.resolve(dir, 'migrations')
+};

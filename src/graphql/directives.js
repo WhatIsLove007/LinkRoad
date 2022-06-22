@@ -23,7 +23,7 @@ export function authDirective(schema) {
 
                const userRole = user.getRole();
 
-               const isAuthorized = requiredRole.indexOf(userRole) !== -1;
+               const isAuthorized = requiredRole.includes(userRole);
                if (!isAuthorized) {
                   throw new AuthenticationError(`Access is denied. You need following role: ${requiredRole}`);
                }
